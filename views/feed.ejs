@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feed</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .post { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 8px; }
+        .author { color: #666; font-size: 0.9rem; }
+        .reaction { margin-top: 10px; }
+        .navbar { margin-bottom: 20px; }
+        .navbar a { margin-right: 10px; }
+        select { padding: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <a href="/feed">Home</a>
+
+    <% if (currentUser) { %>
+        <a href="/newpost">New Post</a>
+        <span>Logged in as <%= currentUser.userfirstname %></span>
+        <a href="/logout">Logout</a>
+    <% } else { %>
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+    <% } %>
+</div>
+
+<h2>Feed</h2>
+
+<% if (error_message && error_message.length > 0) { %>
+    <p style="color:red;"><%= error_message %></p>
+<% } %>
+
+<% if (submissions.length === 0) { %>
+    <p>No posts yet.</p>
+<% } %>
+
+<% submissions.forEach(function(post) { %>
+    <div class="post">
+
+        <div class="author">
+            <% if (post.userfirstname) { %>
+                <%= post.userfirstname %> <%= post.userlastname %>
+            <% } else { %>
+                Deleted User
+            <% } %>
+            — <%= new Date(post.subdate).toLocaleString() %>
+        </div>
+
+        <p><%= post.subtext %></p>
+
+        <div class="reaction">
+            <strong>Reactions:</strong>
+            <%= reactionCounts[post.subid] || 0 %>
+
+            <% if (currentUser) { %>
+
+                <!-- NEW REACTION DROPDOWN -->
+                <form method="POST" action="/react" style="display:inline;">
+                    <input type="hidden" name="subid" value="<%= post.subid %>">
+
+                    <select name="reactionid" required>
+                        <option value="">React…</option>
+                        <option value="1">❤️ Like</option>
+                        <option value="2">👍 Upvote</option>
+                        <option value="3">😂 Laugh</option>
+                    </select>
+
+                    <button type="submit">Submit</button>
+                </form>
+
+                <!-- Remove reaction if exists -->
+                <% if (myReactions[post.subid]) { %>
+                    <form method="POST" action="/unreact" style="display:inline;">
+                        <input type="hidden" name="subid" value="<%= post.subid %>">
+                        <button type="submit">Remove Reaction</button>
+                    </form>
+                <% } %>
+
+
+            <% } %>
+
+        </div>
+
+        <a href="/post/<%= post.subid %>">View Post</a>
+    </div>
+<% }) %>
+
+</body>
+</html>

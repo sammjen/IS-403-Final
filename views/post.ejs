@@ -1,0 +1,69 @@
+<% include('layout', { currentUser: currentUser, body: (function(){ %>
+    <% if (!post) { %>
+        <h2>Post not found</h2>
+        <% if (error_message) { %><div class="error"><%= error_message %></div><% } %>
+        <p><a href="/feed">Back to feed</a></p>
+    <% } else { %>
+        <h2>Post</h2>
+
+        <div class="post">
+            <div>
+                <strong><%= post.userfirstname ? (post.userfirstname + (post.userlastname ? (' ' + post.userlastname) : '')) : 'Deleted User' %></strong>
+                <span class="meta"> — <%= new Date(post.subdate).toLocaleString() %></span>
+            </div>
+
+            <div style="margin:8px 0;"><%= post.subtext %></div>
+
+            <div class="small"><%= reactionCounts %> reactions</div>
+
+            <% if (currentUser) { %>
+                <form action="/react" method="post" style="margin-top:8px;">
+                    <input type="hidden" name="subid" value="<%= post.subid %>">
+                    <button class="emoji-btn" name="reactionid" value="1">👍</button>
+                    <button class="emoji-btn" name="reactionid" value="2">❤️</button>
+                    <button class="emoji-btn" name="reactionid" value="3">😂</button>
+                    <button class="emoji-btn" name="reactionid" value="4">🎉</button>
+                    <button class="emoji-btn" name="reactionid" value="5">😮</button>
+                    <button class="emoji-btn" name="reactionid" value="6">🙏</button>
+                </form>
+            <% } else { %>
+                <div class="small">Log in to react</div>
+            <% } %>
+
+            <!-- Delete button for owner or manager -->
+            <% if (currentUser && (currentUser.userid === post.authorid || currentUser.manager)) { %>
+                <form action="/deletePost/<%= post.subid %>" method="post" style="margin-top:8px;">
+                    <button type="submit" style="background:#c33; color:#fff;">Delete Post</button>
+                </form>
+            <% } %>
+        </div>
+
+        <h3 style="margin-top:16px;">Replies</h3>
+
+        <% if (replies.length === 0) { %>
+            <p class="small">No replies yet. <% if (currentUser) { %>Be the first to reply!<% } %></p>
+        <% } %>
+
+        <% replies.forEach(function(r) { %>
+            <div style="border-top:1px solid #eee; padding:10px 0;">
+                <strong><%= r.userfirstname ? (r.userfirstname + (r.userlastname ? (' ' + r.userlastname) : '')) : 'Deleted User' %></strong>
+                <span class="meta"> — <%= new Date(r.replydate).toLocaleString() %></span>
+                <div style="margin-top:6px;"><%= r.replytext %></div>
+            </div>
+        <% }); %>
+
+        <% if (currentUser) { %>
+            <form action="/reply/<%= post.subid %>" method="post" style="margin-top:12px;">
+                <label>Your reply</label>
+                <textarea name="replytext" rows="3"></textarea>
+                <div style="margin-top:8px;">
+                    <button type="submit">Post Reply</button>
+                </div>
+            </form>
+        <% } else { %>
+            <p class="small">Log in to reply.</p>
+        <% } %>
+
+        <p style="margin-top:12px;"><a href="/feed">Back to feed</a></p>
+    <% } %>
+<% }).call(this) }) %>

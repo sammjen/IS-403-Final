@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        form { margin-top: 20px; }
+        label { display: block; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<h2>Create Account</h2>
+
+<% if (error_message && error_message.length > 0) { %>
+    <p style="color:red;"><%= error_message %></p>
+<% } %>
+
+<form method="POST" action="/register">
+    <label>First Name:
+        <input type="text" name="firstname" required>
+    </label>
+
+    <label>Last Name:
+        <input type="text" name="lastname" required>
+    </label>
+
+    <label>Email:
+        <input type="email" name="email" required>
+    </label>
+
+    <label>Password:
+        <input type="password" name="password" required>
+    </label>
+
+    <button type="submit">Create Account</button>
+</form>
+
+<p>
+    Already have an account? <a href="/login">Login</a>
+</p>
+
+</body>
+</html>
