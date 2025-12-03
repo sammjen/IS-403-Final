@@ -187,8 +187,14 @@
         <% }); %>
 
         <% if (currentUser) { %>
+            
+            <% if (error_message) { %>
+                <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 5px; margin-bottom: 20px;">
+                    <%= error_message %>
+                </div>
+            <% } %>
             <form action="/reply/<%= post.subid %>" method="post" style="margin-top:12px;">
-                <label class="small" style="display:block; margin-bottom:4px;">Your reply</label>
+                <label>Your reply</label>
                 <textarea name="replytext" rows="3"></textarea>
                 <div style="margin-top:8px;">
                     <button type="submit" class="btn-primary">Post Reply</button>

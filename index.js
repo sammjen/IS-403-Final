@@ -1,4 +1,4 @@
-// william gifford
+// william gifford, waylan abbott, luke hooper, sam jenson
 // good-news app (bare-bones)
 // section: Node + Express + EJS with Knex + PostgreSQL (pgcrypto)
 // Notes:
@@ -7,13 +7,16 @@
 // - Sessions used for auth. req.session.isLoggedIn, req.session.user
 // - Minimal validation for brevity — add as needed.
 
+// setting up the necessary libraries and paths to make our website work
 require('dotenv').config();
 
 const express = require("express");
 const session = require("express-session");
 const path = require("path");
-const Sentiment = require("sentiment"); // Add this line
+// this is the library used to filter out bad news
+const Sentiment = require("sentiment");
 const sentiment = new Sentiment();
+// setting up our database
 const knex = require("knex")({
     client: "pg",
     connection: {
@@ -341,6 +344,7 @@ app.post("/newpost", (req, res) => {
 });
 
 // VIEW SINGLE POST (public)
+// VIEW SINGLE POST (public)
 app.get("/post/:id", (req, res) => {
     const postId = req.params.id;
 
@@ -415,6 +419,12 @@ app.get("/post/:id", (req, res) => {
 
                 const myReaction = myRe ? myRe.reactionid : null;
 
+                // Check if the URL has ?error=negative
+                let errorMsg = "";
+                if (req.query.error === 'negative') {
+                    errorMsg = "Oops! We only allow Good News here. Your reply was detected as negative.";
+                }
+
                 res.render("post", {
                     post: post,
                     replies: replies,
@@ -422,7 +432,7 @@ app.get("/post/:id", (req, res) => {
                     reactionBreakdown: breakdownMap,
                     myReaction: myReaction,
                     currentUser: req.session.user || null,
-                    error_message: ""
+                    error_message: errorMsg
                 });
             });
         })
@@ -451,23 +461,31 @@ app.post("/reply/:id", (req, res) => {
         return res.redirect(`/post/${subId}`);
     }
 
-    knex("replies")
-        .insert({
-            userid: req.session.user.userid,
-            subid: subId,
-            replytext: replytext,
-            replynegativestatus: false,
-            replydate: knex.fn.now()
-        })
-        .then(() => {
-            res.redirect(`/post/${subId}`);
-        })
-        .catch(err => {
-            console.error("Reply error:", err.message);
-            res.redirect(`/post/${subId}`);
-        });
-});
+    // --- START FILTER LOGIC ---
+    const analysis = sentiment.analyze(replytext);
 
+    if (analysis.score < 0) {
+        // Redirect back to the post, but add ?error=negative to the URL
+        return res.redirect(`/post/${subId}?error=negative`);
+    }
+    // --- END FILTER LOGIC ---
+
+    knex("replies")
+      .insert({
+          userid: req.session.user.userid,
+          subid: subId,
+          replytext: replytext,
+          replynegativestatus: false,
+          replydate: knex.fn.now()
+      })
+      .then(() => {
+          res.redirect(`/post/${subId}`);
+      })
+      .catch(err => {
+          console.error("Reply error:", err.message);
+          res.redirect(`/post/${subId}`);
+      });
+});
 app.post("/react", (req, res) => {
     if (!req.session.isLoggedIn) {
         return res.status(401).json({ error: "Login required" });

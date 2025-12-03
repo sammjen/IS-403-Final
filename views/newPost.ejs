@@ -62,7 +62,9 @@
     <h2>New Post</h2>
 
     <% if (error_message) { %>
-        <div class="error"><%= error_message %></div>
+        <div style="background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; padding: 12px; border-radius: 5px; margin-bottom: 20px;">
+            <%= error_message %>
+        </div>
     <% } %>
 
     <form action="/newpost" method="post" style="margin-top:12px;">
