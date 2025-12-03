@@ -1,92 +1,390 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Feed</title>
+    <meta charset="utf-8" />
+    <title>Good News Network – Feed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-        body { font-family: Arial; margin: 20px; }
-        .post { border: 1px solid #ccc; padding: 10px; margin-bottom: 15px; border-radius: 8px; }
-        .author { color: #666; font-size: 0.9rem; }
-        .reaction { margin-top: 10px; }
-        .navbar { margin-bottom: 20px; }
-        .navbar a { margin-right: 10px; }
-        select { padding: 3px; }
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f7fb;
+            color: #111827;
+        }
+
+        a {
+            color: inherit;
+        }
+
+        .navbar {
+            background: #ffffff;
+            border-bottom: 1px solid #dde1ea;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .navbar-left,
+        .navbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #111827;
+        }
+
+        .tagline {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .navbar-link {
+            text-decoration: none;
+            color: #2563eb;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .navbar-link:hover {
+            text-decoration: underline;
+        }
+
+        .btn-nav {
+            border-radius: 999px;
+            padding: 6px 12px;
+            border: none;
+            text-decoration: none;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-nav.secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .btn-nav:hover {
+            filter: brightness(0.95);
+        }
+
+        .user-pill {
+            background: #eef2ff;
+            border-radius: 999px;
+            padding: 4px 10px;
+            font-size: 0.8rem;
+            color: #4b5563;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 24px auto 40px;
+            padding: 0 16px;
+        }
+
+        h1, h2, h3 {
+            font-weight: 600;
+            color: #111827;
+            margin-top: 0;
+        }
+
+        .error {
+            color: #b91c1c;
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            padding: 8px 10px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        .small {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .meta {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .link {
+            font-size: 0.85rem;
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        footer {
+            text-align: center;
+            padding: 12px 0 16px;
+            color: #9ca3af;
+            font-size: 0.8rem;
+        }
+
+        .post {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+            padding: 14px 16px 12px;
+            margin-bottom: 14px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .post-author {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .post-body {
+            margin: 8px 0 10px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .post-footer {
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .reaction-block {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .reaction-summary {
+            font-size: 0.8rem;
+            color: #4b5563;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .reaction-totals-line {
+            font-size: 0.78rem;
+            color: #6b7280;
+        }
+
+        .your-reaction-pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .reaction-form-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 4px;
+        }
+
+        .emoji-btn {
+            border: none;
+            background: #f3f4f6;
+            border-radius: 999px;
+            padding: 4px 8px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .emoji-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .emoji-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .remove-reaction-btn {
+            border: none;
+            background: none;
+            padding: 0;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #6b7280;
+            text-decoration: underline;
+        }
+
+        .remove-reaction-btn:hover {
+            color: #111827;
+        }
+
+        .btn-primary {
+            border: none;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: #2563eb;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(0.95);
+        }
     </style>
 </head>
 <body>
 
 <div class="navbar">
-    <a href="/feed">Home</a>
+    <div class="navbar-left">
+        <div>
+            <a href="/feed" class="navbar-link" style="text-decoration:none;">
+                <div class="brand">Good News Network</div>
+            </a>
+            <div class="tagline">Share the good stuff ✨</div>
+        </div>
+    </div>
 
-    <% if (currentUser) { %>
-        <a href="/newpost">New Post</a>
-        <span>Logged in as <%= currentUser.userfirstname %></span>
-        <a href="/logout">Logout</a>
-    <% } else { %>
-        <a href="/login">Login</a>
-        <a href="/register">Register</a>
-    <% } %>
+    <div class="navbar-right">
+        <a href="/feed" class="navbar-link">Feed</a>
+
+        <% if (currentUser) { %>
+            <a href="/newpost" class="btn-nav">New Post</a>
+            <span class="user-pill">Logged in as <strong><%= currentUser.userfirstname %></strong></span>
+            <a href="/logout" class="btn-nav secondary">Logout</a>
+        <% } else { %>
+            <a href="/login" class="btn-nav secondary">Login</a>
+            <a href="/register" class="btn-nav">Register</a>
+        <% } %>
+    </div>
 </div>
 
-<h2>Feed</h2>
+<div class="container">
 
-<% if (error_message && error_message.length > 0) { %>
-    <p style="color:red;"><%= error_message %></p>
-<% } %>
+    <h2>Latest Good News</h2>
 
-<% if (submissions.length === 0) { %>
-    <p>No posts yet.</p>
-<% } %>
+    <% if (error_message && error_message.length > 0) { %>
+        <div class="error"><%= error_message %></div>
+    <% } %>
 
-<% submissions.forEach(function(post) { %>
-    <div class="post">
+    <% if (submissions.length === 0) { %>
+        <p class="small">No posts yet. Be the first to share something good!</p>
+    <% } %>
 
-        <div class="author">
-            <% if (post.userfirstname) { %>
-                <%= post.userfirstname %> <%= post.userlastname %>
-            <% } else { %>
-                Deleted User
-            <% } %>
-            — <%= new Date(post.subdate).toLocaleString() %>
+    <% submissions.forEach(function(post) { 
+        var breakdown = reactionBreakdown[post.subid] || {};
+    %>
+        <div class="post">
+            <div class="post-header">
+                <div>
+                    <div class="post-author">
+                        <% if (post.userfirstname) { %>
+                            <%= post.userfirstname %> <%= post.userlastname %>
+                        <% } else { %>
+                            Deleted User
+                        <% } %>
+                    </div>
+                    <div class="meta">
+                        <%= new Date(post.subdate).toLocaleString() %>
+                    </div>
+                </div>
+            </div>
+
+            <div class="post-body">
+                <%= post.subtext %>
+            </div>
+
+            <div class="post-footer">
+                <div class="reaction-block">
+                    <div class="reaction-summary">
+                        <span><strong>Total reactions:</strong> <%= reactionCounts[post.subid] || 0 %></span>
+
+                        <span class="reaction-totals-line">
+                            👍 <%= breakdown[1] || 0 %> ·
+                            ❤️ <%= breakdown[2] || 0 %> ·
+                            😂 <%= breakdown[3] || 0 %> ·
+                            🎉 <%= breakdown[4] || 0 %> ·
+                            😮 <%= breakdown[5] || 0 %> ·
+                            🙏 <%= breakdown[6] || 0 %>
+                        </span>
+
+                        <% if (myReactions[post.subid]) { %>
+                            <span class="your-reaction-pill">
+                                Your reaction:
+                                <% if (myReactions[post.subid] === 1) { %>👍<% } %>
+                                <% if (myReactions[post.subid] === 2) { %>❤️<% } %>
+                                <% if (myReactions[post.subid] === 3) { %>😂<% } %>
+                                <% if (myReactions[post.subid] === 4) { %>🎉<% } %>
+                                <% if (myReactions[post.subid] === 5) { %>😮<% } %>
+                                <% if (myReactions[post.subid] === 6) { %>🙏<% } %>
+                            </span>
+                        <% } %>
+                    </div>
+
+                    <% if (currentUser) { %>
+                        <form method="POST" action="/react" class="reaction-form-row">
+                            <input type="hidden" name="subid" value="<%= post.subid %>">
+
+                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 1 ? 'active' : '' %>" name="reactionid" value="1">👍</button>
+                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 2 ? 'active' : '' %>" name="reactionid" value="2">❤️</button>
+                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 3 ? 'active' : '' %>" name="reactionid" value="3">😂</button>
+                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 4 ? 'active' : '' %>" name="reactionid" value="4">🎉</button>
+                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 5 ? 'active' : '' %>" name="reactionid" value="5">😮</button>
+                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 6 ? 'active' : '' %>" name="reactionid" value="6">🙏</button>
+                        </form>
+
+                        <% if (myReactions[post.subid]) { %>
+                            <form method="POST" action="/unreact">
+                                <input type="hidden" name="subid" value="<%= post.subid %>">
+                                <button type="submit" class="remove-reaction-btn">Remove reaction</button>
+                            </form>
+                        <% } %>
+                    <% } else { %>
+                        <div class="small">Log in to react.</div>
+                    <% } %>
+                </div>
+
+                <div>
+                    <a class="link" href="/post/<%= post.subid %>">Open post →</a>
+                </div>
+            </div>
         </div>
+    <% }) %>
 
-        <p><%= post.subtext %></p>
+</div>
 
-        <div class="reaction">
-            <strong>Reactions:</strong>
-            <%= reactionCounts[post.subid] || 0 %>
-
-            <% if (currentUser) { %>
-
-                <!-- NEW REACTION DROPDOWN -->
-                <form method="POST" action="/react" style="display:inline;">
-                    <input type="hidden" name="subid" value="<%= post.subid %>">
-
-                    <select name="reactionid" required>
-                        <option value="">React…</option>
-                        <option value="1">❤️ Like</option>
-                        <option value="2">👍 Upvote</option>
-                        <option value="3">😂 Laugh</option>
-                    </select>
-
-                    <button type="submit">Submit</button>
-                </form>
-
-                <!-- Remove reaction if exists -->
-                <% if (myReactions[post.subid]) { %>
-                    <form method="POST" action="/unreact" style="display:inline;">
-                        <input type="hidden" name="subid" value="<%= post.subid %>">
-                        <button type="submit">Remove Reaction</button>
-                    </form>
-                <% } %>
-
-
-            <% } %>
-
-        </div>
-
-        <a href="/post/<%= post.subid %>">View Post</a>
-    </div>
-<% }) %>
+<footer>
+    Good News Network · Built for IS 403
+</footer>
 
 </body>
 </html>

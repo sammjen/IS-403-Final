@@ -1,16 +1,84 @@
-<% include('layout', { currentUser: currentUser, body: (function(){ %>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Good News Network – New Post</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- same CSS as feed/post for consistency, trimmed to what we need -->
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fb; color: #111827; }
+        a { color: inherit; }
+        .navbar { background: #ffffff; border-bottom: 1px solid #dde1ea; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
+        .navbar-left, .navbar-right { display: flex; align-items: center; gap: 12px; }
+        .brand { font-weight: 700; font-size: 1.1rem; color: #111827; }
+        .tagline { font-size: 0.8rem; color: #6b7280; }
+        .navbar-link { text-decoration: none; color: #2563eb; font-weight: 500; font-size: 0.9rem; }
+        .navbar-link:hover { text-decoration: underline; }
+        .btn-nav { border-radius: 999px; padding: 6px 12px; border: none; text-decoration: none; background: #2563eb; color: #ffffff; font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+        .btn-nav.secondary { background: #e5e7eb; color: #111827; }
+        .btn-nav:hover { filter: brightness(0.95); }
+        .user-pill { background: #eef2ff; border-radius: 999px; padding: 4px 10px; font-size: 0.8rem; color: #4b5563; }
+        .container { max-width: 800px; margin: 24px auto 40px; padding: 0 16px; }
+        h1, h2, h3 { font-weight: 600; color: #111827; margin-top: 0; }
+        .error { color: #b91c1c; background: #fee2e2; border: 1px solid #fecaca; padding: 8px 10px; border-radius: 8px; margin-bottom: 16px; font-size: 0.85rem; }
+        .small { font-size: 0.8rem; color: #6b7280; }
+        .link { font-size: 0.85rem; color: #2563eb; text-decoration: none; font-weight: 500; }
+        .link:hover { text-decoration: underline; }
+        footer { text-align: center; padding: 12px 0 16px; color: #9ca3af; font-size: 0.8rem; }
+        .btn-primary { border: none; border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; font-weight: 600; background: #2563eb; color: #ffffff; cursor: pointer; }
+        .btn-primary:hover { filter: brightness(0.95); }
+        textarea { width: 100%; resize: vertical; border-radius: 8px; border: 1px solid #d1d5db; padding: 8px 10px; font-size: 0.9rem; }
+        textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2); }
+    </style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="navbar-left">
+        <div>
+            <a href="/feed" class="navbar-link" style="text-decoration:none;">
+                <div class="brand">Good News Network</div>
+            </a>
+            <div class="tagline">Share the good stuff ✨</div>
+        </div>
+    </div>
+
+    <div class="navbar-right">
+        <a href="/feed" class="navbar-link">Feed</a>
+
+        <% if (currentUser) { %>
+            <a href="/newpost" class="btn-nav">New Post</a>
+            <span class="user-pill">Logged in as <strong><%= currentUser.userfirstname %></strong></span>
+            <a href="/logout" class="btn-nav secondary">Logout</a>
+        <% } else { %>
+            <a href="/login" class="btn-nav secondary">Login</a>
+            <a href="/register" class="btn-nav">Register</a>
+        <% } %>
+    </div>
+</div>
+
+<div class="container">
     <h2>New Post</h2>
 
     <% if (error_message) { %>
         <div class="error"><%= error_message %></div>
     <% } %>
 
-    <form action="/newpost" method="post">
-        <label>Share some good news</label>
+    <form action="/newpost" method="post" style="margin-top:12px;">
+        <label class="small" style="display:block; margin-bottom:4px;">Share some good news</label>
         <textarea name="subtext" rows="6"></textarea>
-        <div style="margin-top:8px;">
-            <button type="submit">Post</button>
-            <a href="/feed" style="margin-left:8px;">Cancel</a>
+
+        <div style="margin-top:10px; display:flex; align-items:center; gap:8px;">
+            <button type="submit" class="btn-primary">Post</button>
+            <a href="/feed" class="link">Cancel</a>
         </div>
     </form>
-<% }).call(this) }) %>
+</div>
+
+<footer>
+    Good News Network · Built for IS 403
+</footer>
+
+</body>
+</html>

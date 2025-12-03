@@ -88,68 +88,91 @@ app.get("/", (req, res) => {
 
 // FEED (public) - newest first
 app.get("/feed", (req, res) => {
-    // We want: submissions (newest first), author info (if available), reaction counts,
-    // and the current user's reaction for each post (if logged in).
+    // We want: submissions (newest first), author info (if available),
+    // reaction totals, per-reaction breakdown, and current user's reaction.
     knex
-      .select(
-          "submissions.subid",
-          "submissions.subtext",
-          "submissions.subnegativestatus",
-          "submissions.subdate",
-          "submissions.userid as authorid",
-          "users.userfirstname",
-          "users.userlastname"
-      )
-      .from("submissions")
-      .leftJoin("users", "submissions.userid", "users.userid")
-      .orderBy("submissions.subdate", "desc")
-      .then(subs => {
-          const subIds = subs.map(s => s.subid);
-          // Reaction counts
-          if (subIds.length === 0) {
-              return Promise.resolve({subs: subs, counts: {}, myReactions: {}});
-          }
+        .select(
+            "submissions.subid",
+            "submissions.subtext",
+            "submissions.subnegativestatus",
+            "submissions.subdate",
+            "submissions.userid as authorid",
+            "users.userfirstname",
+            "users.userlastname"
+        )
+        .from("submissions")
+        .leftJoin("users", "submissions.userid", "users.userid")
+        .orderBy("submissions.subdate", "desc")
+        .then(subs => {
+            const subIds = subs.map(s => s.subid);
 
-          const countsQ = knex("subreactions")
-            .select("subid")
-            .count("reactionid as cnt")
-            .whereIn("subid", subIds)
-            .groupBy("subid");
+            if (subIds.length === 0) {
+                return Promise.resolve({
+                    subs: subs,
+                    totals: {},
+                    breakdown: {},
+                    myReactions: {}
+                });
+            }
 
-          const myReactionsQ = req.session.isLoggedIn ?
-            knex("subreactions").select("subid", "reactionid").whereIn("subid", subIds).andWhere("userid", req.session.user.userid)
-            : Promise.resolve([]);
+            // Per-reaction counts: one row per (subid, reactionid)
+            const breakdownQ = knex("subreactions")
+                .select("subid", "reactionid")
+                .count("* as cnt")
+                .whereIn("subid", subIds)
+                .groupBy("subid", "reactionid");
 
-          return Promise.all([countsQ, myReactionsQ]).then(([countsRows, myReRows]) => {
-              const counts = {};
-              countsRows.forEach(r => { counts[r.subid] = parseInt(r.cnt, 10); });
+            // Current user's reactions per post
+            const myReactionsQ = req.session.isLoggedIn ?
+                knex("subreactions")
+                    .select("subid", "reactionid")
+                    .whereIn("subid", subIds)
+                    .andWhere("userid", req.session.user.userid)
+                : Promise.resolve([]);
 
-              const myReactions = {};
-              myReRows.forEach(r => { myReactions[r.subid] = r.reactionid; });
+            return Promise.all([breakdownQ, myReactionsQ]).then(([breakdownRows, myReRows]) => {
+                const totals = {};          // subid -> total reaction count
+                const breakdown = {};       // subid -> { reactionid -> count }
 
-              return {subs, counts, myReactions};
-          });
-      })
-      .then(result => {
-          // Render feed
-          res.render("feed", {
-              submissions: result.subs,
-              reactionCounts: result.counts,
-              myReactions: result.myReactions,
-              currentUser: req.session.user || null,
-              error_message: ""
-          });
-      })
-      .catch(err => {
-          console.error("Error loading feed:", err.message);
-          res.render("feed", {
-              submissions: [],
-              reactionCounts: {},
-              myReactions: {},
-              currentUser: req.session.user || null,
-              error_message: "Database error: " + err.message
-          });
-      });
+                breakdownRows.forEach(r => {
+                    const sid = r.subid;
+                    const rid = r.reactionid;
+                    const cnt = parseInt(r.cnt, 10);
+
+                    if (!breakdown[sid]) breakdown[sid] = {};
+                    breakdown[sid][rid] = cnt;
+
+                    totals[sid] = (totals[sid] || 0) + cnt;
+                });
+
+                const myReactions = {};
+                myReRows.forEach(r => { myReactions[r.subid] = r.reactionid; });
+
+                return { subs, totals, breakdown, myReactions };
+            });
+        })
+        .then(result => {
+            // Render feed
+            res.render("feed", {
+                submissions: result.subs,
+                reactionCounts: result.totals,
+                reactionBreakdown: result.breakdown,
+                myReactions: result.myReactions,
+                currentUser: req.session.user || null,
+                error_message: ""
+            });
+        })
+        .catch(err => {
+            console.error("Error loading feed:", err.message);
+            res.render("feed", {
+                submissions: [],
+                reactionCounts: {},
+                reactionBreakdown: {},
+                myReactions: {},
+                currentUser: req.session.user || null,
+                error_message: "Database error: " + err.message
+            });
+        });
 });
 
 // REGISTER (GET)
@@ -157,7 +180,7 @@ app.get("/register", (req, res) => {
     res.render("register", { error_message: "" });
 });
 
-// REGISTER (POST)
+// REGISTER (POST) - fixed to avoid double render bug
 app.post("/register", (req, res) => {
     const { firstname, lastname, email, password } = req.body;
 
@@ -171,21 +194,26 @@ app.post("/register", (req, res) => {
         .first()
         .then(user => {
             if (user) {
-                return res.render("register", {
+                // Email already registered → render once and stop the chain
+                res.render("register", {
                     error_message: "Email already registered"
                 });
+                return null; // important: prevents the next .then() from running
             }
 
             // Insert hashed password and return all user info
             return knex.raw(
                 `INSERT INTO users (userfirstname, userlastname, useremail, userpassword)
                  VALUES (?, ?, ?, crypt(?, gen_salt('bf')))
-                 RETURNING userid, userfirstname, userlastname, useremail`,
+                 RETURNING userid, userfirstname, userlastname, useremail, manager`,
                 [firstname, lastname, email, password]
             );
         })
         .then(result => {
-            if (!result || !result.rows || result.rows.length === 0) {
+            // If result is null, we already handled response (duplicate email)
+            if (!result) return;
+
+            if (!result.rows || result.rows.length === 0) {
                 return res.render("register", { error_message: "Registration error" });
             }
 
@@ -197,7 +225,8 @@ app.post("/register", (req, res) => {
                 userid: newUser.userid,
                 userfirstname: newUser.userfirstname,
                 userlastname: newUser.userlastname,
-                useremail: newUser.useremail
+                useremail: newUser.useremail,
+                manager: newUser.manager
             };
 
             // Redirect to feed
@@ -205,11 +234,12 @@ app.post("/register", (req, res) => {
         })
         .catch(err => {
             console.error("Register error:", err.message);
-            res.render("register", { error_message: "Registration error" });
+            // Only render if headers not already sent
+            if (!res.headersSent) {
+                res.render("register", { error_message: "Registration error" });
+            }
         });
 });
-
-
 
 // LOGIN (GET) - show login form
 app.get("/login", (req, res) => {
@@ -232,22 +262,21 @@ app.post("/login", (req, res) => {
          AND userpassword::text = crypt(?, userpassword::text)`,
         [sEmail, sPassword]
     )
-    .then(result => {
-        const users = result.rows;
-        if (users.length > 0) {
-            req.session.isLoggedIn = true;
-            req.session.user = users[0];
-            res.redirect("/feed");
-        } else {
+        .then(result => {
+            const users = result.rows;
+            if (users.length > 0) {
+                req.session.isLoggedIn = true;
+                req.session.user = users[0];
+                res.redirect("/feed");
+            } else {
+                res.render("login", { error_message: "Invalid login" });
+            }
+        })
+        .catch(err => {
+            console.error("Login error:", err.message);
             res.render("login", { error_message: "Invalid login" });
-        }
-    })
-    .catch(err => {
-        console.error("Login error:", err.message);
-        res.render("login", { error_message: "Invalid login" });
-    });
+        });
 });
-
 
 // LOGOUT
 app.get("/logout", (req, res) => {
@@ -273,19 +302,19 @@ app.post("/newpost", (req, res) => {
     }
 
     knex("submissions")
-      .insert({
-          userid: req.session.user.userid,
-          subtext: subtext,
-          subnegativestatus: false, // placeholder; AI filter not implemented
-          subdate: knex.fn.now()
-      })
-      .then(() => {
-          res.redirect("/feed");
-      })
-      .catch(err => {
-          console.error("Add post error:", err.message);
-          res.render("newPost", { error_message: "Error adding post: " + err.message, currentUser: req.session.user });
-      });
+        .insert({
+            userid: req.session.user.userid,
+            subtext: subtext,
+            subnegativestatus: false, // placeholder; AI filter not implemented
+            subdate: knex.fn.now()
+        })
+        .then(() => {
+            res.redirect("/feed");
+        })
+        .catch(err => {
+            console.error("Add post error:", err.message);
+            res.render("newPost", { error_message: "Error adding post: " + err.message, currentUser: req.session.user });
+        });
 });
 
 // VIEW SINGLE POST (public)
@@ -294,54 +323,98 @@ app.get("/post/:id", (req, res) => {
 
     // Get post and author (if any)
     knex
-      .select(
-          "submissions.subid",
-          "submissions.subtext",
-          "submissions.subnegativestatus",
-          "submissions.subdate",
-          "submissions.userid as authorid",
-          "users.userfirstname",
-          "users.userlastname"
-      )
-      .from("submissions")
-      .leftJoin("users", "submissions.userid", "users.userid")
-      .where("submissions.subid", postId)
-      .first()
-      .then(post => {
-          if (!post) {
-              return res.render("post", { post: null, replies: [], reactionCounts: 0, myReaction: null, currentUser: req.session.user, error_message: "Post not found" });
-          }
+        .select(
+            "submissions.subid",
+            "submissions.subtext",
+            "submissions.subnegativestatus",
+            "submissions.subdate",
+            "submissions.userid as authorid",
+            "users.userfirstname",
+            "users.userlastname"
+        )
+        .from("submissions")
+        .leftJoin("users", "submissions.userid", "users.userid")
+        .where("submissions.subid", postId)
+        .first()
+        .then(post => {
+            if (!post) {
+                return res.render("post", {
+                    post: null,
+                    replies: [],
+                    reactionCounts: 0,
+                    reactionBreakdown: {},
+                    myReaction: null,
+                    currentUser: req.session.user,
+                    error_message: "Post not found"
+                });
+            }
 
-          // Count reactions
-          const countQ = knex("subreactions").where("subid", postId).count("reactionid as cnt");
-          // Get replies with author info
-          const repliesQ = knex("replies")
-            .select("replies.replyid", "replies.replytext", "replies.replydate", "replies.userid as authorid", "users.userfirstname", "users.userlastname")
-            .leftJoin("users", "replies.userid", "users.userid")
-            .where("replies.subid", postId)
-            .orderBy("replies.replydate", "asc");
+            // Per-reaction breakdown for this single post
+            const breakdownQ = knex("subreactions")
+                .select("reactionid")
+                .count("* as cnt")
+                .where("subid", postId)
+                .groupBy("reactionid");
 
-          // Current user's reaction
-          const myReactionQ = req.session.isLoggedIn ? knex("subreactions").select("reactionid").where({subid: postId, userid: req.session.user.userid}).first() : Promise.resolve(null);
+            // Get replies with author info
+            const repliesQ = knex("replies")
+                .select(
+                    "replies.replyid",
+                    "replies.replytext",
+                    "replies.replydate",
+                    "replies.userid as authorid",
+                    "users.userfirstname",
+                    "users.userlastname"
+                )
+                .leftJoin("users", "replies.userid", "users.userid")
+                .where("replies.subid", postId)
+                .orderBy("replies.replydate", "asc");
 
-          return Promise.all([countQ, repliesQ, myReactionQ]).then(([countRows, replies, myRe]) => {
-              const cnt = (countRows && countRows[0]) ? parseInt(countRows[0].cnt, 10) : 0;
-              const myReaction = myRe ? myRe.reactionid : null;
+            // Current user's reaction
+            const myReactionQ = req.session.isLoggedIn
+                ? knex("subreactions")
+                    .select("reactionid")
+                    .where({ subid: postId, userid: req.session.user.userid })
+                    .first()
+                : Promise.resolve(null);
 
-              res.render("post", {
-                  post: post,
-                  replies: replies,
-                  reactionCounts: cnt,
-                  myReaction: myReaction,
-                  currentUser: req.session.user || null,
-                  error_message: ""
-              });
-          });
-      })
-      .catch(err => {
-          console.error("Error loading post:", err.message);
-          res.render("post", { post: null, replies: [], reactionCounts: 0, myReaction: null, currentUser: req.session.user, error_message: "Database error: " + err.message });
-      });
+            return Promise.all([breakdownQ, repliesQ, myReactionQ]).then(([breakdownRows, replies, myRe]) => {
+                let total = 0;
+                const breakdownMap = {};
+                breakdownMap[postId] = {};
+
+                breakdownRows.forEach(r => {
+                    const rid = r.reactionid;
+                    const cnt = parseInt(r.cnt, 10);
+                    breakdownMap[postId][rid] = cnt;
+                    total += cnt;
+                });
+
+                const myReaction = myRe ? myRe.reactionid : null;
+
+                res.render("post", {
+                    post: post,
+                    replies: replies,
+                    reactionCounts: total,
+                    reactionBreakdown: breakdownMap,
+                    myReaction: myReaction,
+                    currentUser: req.session.user || null,
+                    error_message: ""
+                });
+            });
+        })
+        .catch(err => {
+            console.error("Error loading post:", err.message);
+            res.render("post", {
+                post: null,
+                replies: [],
+                reactionCounts: 0,
+                reactionBreakdown: {},
+                myReaction: null,
+                currentUser: req.session.user || null,
+                error_message: "Database error: " + err.message
+            });
+        });
 });
 
 // REPLY (POST)
@@ -356,20 +429,20 @@ app.post("/reply/:id", (req, res) => {
     }
 
     knex("replies")
-      .insert({
-          userid: req.session.user.userid,
-          subid: subId,
-          replytext: replytext,
-          replynegativestatus: false,
-          replydate: knex.fn.now()
-      })
-      .then(() => {
-          res.redirect(`/post/${subId}`);
-      })
-      .catch(err => {
-          console.error("Reply error:", err.message);
-          res.redirect(`/post/${subId}`);
-      });
+        .insert({
+            userid: req.session.user.userid,
+            subid: subId,
+            replytext: replytext,
+            replynegativestatus: false,
+            replydate: knex.fn.now()
+        })
+        .then(() => {
+            res.redirect(`/post/${subId}`);
+        })
+        .catch(err => {
+            console.error("Reply error:", err.message);
+            res.redirect(`/post/${subId}`);
+        });
 });
 
 app.post("/react", (req, res) => {
@@ -422,7 +495,6 @@ app.post("/unreact", (req, res) => {
         });
 });
 
-
 // DELETE POST (POST) - only manager OR post owner can delete
 app.post("/deletePost/:id", (req, res) => {
     if (!req.session.isLoggedIn) return res.redirect("/login");
@@ -431,28 +503,28 @@ app.post("/deletePost/:id", (req, res) => {
 
     // Load post owner
     knex("submissions").select("userid").where("subid", postId).first()
-      .then(post => {
-          if (!post) {
-              return res.redirect("/feed");
-          }
+        .then(post => {
+            if (!post) {
+                return res.redirect("/feed");
+            }
 
-          const isOwner = post.userid === req.session.user.userid;
-          const isManager = !!req.session.user.manager;
+            const isOwner = post.userid === req.session.user.userid;
+            const isManager = !!req.session.user.manager;
 
-          if (!isOwner && !isManager) {
-              return res.status(403).send("Not authorized to delete this post");
-          }
+            if (!isOwner && !isManager) {
+                return res.status(403).send("Not authorized to delete this post");
+            }
 
-          // Delete the submission (this will cascade delete subreactions and replies per schema)
-          return knex("submissions").where("subid", postId).del()
-            .then(() => {
-                res.redirect("/feed");
-            });
-      })
-      .catch(err => {
-          console.error("Delete post error:", err.message);
-          res.redirect("/feed");
-      });
+            // Delete the submission (this will cascade delete subreactions and replies per schema)
+            return knex("submissions").where("subid", postId).del()
+                .then(() => {
+                    res.redirect("/feed");
+                });
+        })
+        .catch(err => {
+            console.error("Delete post error:", err.message);
+            res.redirect("/feed");
+        });
 });
 
 // ---------------------------
