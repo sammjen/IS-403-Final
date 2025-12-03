@@ -4,22 +4,24 @@
     <meta charset="utf-8" />
     <title>Good News Network – Feed</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-        * {
-            box-sizing: border-box;
-        }
 
-        body {
+    <style>
+        * { box-sizing: border-box; }
+
+        body.page {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
             margin: 0;
             padding: 0;
             background: #f5f7fb;
             color: #111827;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        a {
-            color: inherit;
-        }
+        a { color: inherit;
+            text-decoration: none !important;
+ }
 
         .navbar {
             background: #ffffff;
@@ -33,54 +35,31 @@
             z-index: 10;
         }
 
-        .navbar-left,
-        .navbar-right {
+        .navbar-left, .navbar-right {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .brand {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #111827;
-        }
+        .brand { font-weight: 700; font-size: 1.1rem; }
+        .tagline { font-size: 0.8rem; color: #6b7280; }
 
-        .tagline {
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-
-        .navbar-link {
-            text-decoration: none;
-            color: #2563eb;
-            font-weight: 500;
-            font-size: 0.9rem;
-        }
-
-        .navbar-link:hover {
-            text-decoration: underline;
-        }
+        .navbar-link { color: #2563eb; font-weight: 500; }
+        .navbar-link:hover { text-decoration: underline; }
 
         .btn-nav {
             border-radius: 999px;
             padding: 6px 12px;
             border: none;
-            text-decoration: none;
             background: #2563eb;
-            color: #ffffff;
+            color: white;
             font-size: 0.85rem;
-            font-weight: 500;
             cursor: pointer;
         }
 
         .btn-nav.secondary {
             background: #e5e7eb;
             color: #111827;
-        }
-
-        .btn-nav:hover {
-            filter: brightness(0.95);
         }
 
         .user-pill {
@@ -91,179 +70,149 @@
             color: #4b5563;
         }
 
+        /* Container grows to push footer down */
         .container {
             max-width: 800px;
             margin: 24px auto 40px;
             padding: 0 16px;
+            flex: 1;
         }
 
-        h1, h2, h3 {
-            font-weight: 600;
-            color: #111827;
-            margin-top: 0;
+        h2 { text-align: center; }
+
+        /* SEARCH BAR */
+        .search-bar {
+            margin: 20px auto 30px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
-        .error {
-            color: #b91c1c;
-            background: #fee2e2;
-            border: 1px solid #fecaca;
+        .search-select,
+        .search-input,
+        .reaction-select {
             padding: 8px 10px;
             border-radius: 8px;
-            margin-bottom: 16px;
-            font-size: 0.85rem;
+            border: 1px solid #d1d5db;
+            font-size: 0.9rem;
         }
 
-        .small {
+        .remove-reaction-btn {
+            border: none;
+            background: #f3f4f6;
+            padding: 6px 12px;
+            border-radius: 999px;
+            cursor: pointer;
             font-size: 0.8rem;
-            color: #6b7280;
+            color: #374151;
+            margin-top: 6px;
+            display: inline-block;
         }
 
-        .meta {
-            font-size: 0.8rem;
-            color: #6b7280;
+        .remove-reaction-btn:hover {
+            background: #e5e7eb;
+            color: #111827;
         }
 
-        .link {
-            font-size: 0.85rem;
-            color: #2563eb;
-            text-decoration: none;
-            font-weight: 500;
+        .btn-search {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
         }
 
-        .link:hover {
-            text-decoration: underline;
+        .btn-clear {
+            padding: 8px 14px;
+            border-radius: 8px;
+            background: #e5e7eb;
+            color: #111827;
+            cursor: pointer;
+            border: none;
         }
 
-        footer {
-            text-align: center;
-            padding: 12px 0 16px;
-            color: #9ca3af;
-            font-size: 0.8rem;
-        }
-
+        /* Posts */
         .post {
             background: #ffffff;
             border-radius: 12px;
-            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-            padding: 14px 16px 12px;
+            padding: 14px 16px;
             margin-bottom: 14px;
             border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
         }
 
-        .post-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 8px;
-        }
-
-        .post-author {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: #111827;
-        }
+        .post-header { margin-bottom: 6px; }
+        .post-author { font-weight: 600; }
+        .meta { font-size: 0.8rem; color: #6b7280; }
 
         .post-body {
-            margin: 8px 0 10px;
+            margin: 6px 0 16px;
             font-size: 0.95rem;
             line-height: 1.4;
-            white-space: pre-wrap;
+            white-space: pre-line;
         }
 
         .post-footer {
-            margin-top: 4px;
             display: flex;
             justify-content: space-between;
-            align-items: flex-start;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 10px;
         }
 
-        .reaction-block {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .reaction-summary {
-            font-size: 0.8rem;
-            color: #4b5563;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .reaction-totals-line {
-            font-size: 0.78rem;
-            color: #6b7280;
-        }
+        .reaction-summary { font-size: 0.8rem; }
+        .reaction-totals-line { font-size: 0.78rem; color: #6b7280; }
 
         .your-reaction-pill {
             padding: 2px 8px;
             border-radius: 999px;
             background: #e0f2fe;
             color: #0369a1;
-        }
-
-        .reaction-form-row {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 4px;
-            margin-bottom: 4px;
+            display: inline-block;
+            margin-top: 4px;
         }
 
         .emoji-btn {
             border: none;
             background: #f3f4f6;
-            border-radius: 999px;
             padding: 4px 8px;
-            font-size: 0.9rem;
+            border-radius: 999px;
             cursor: pointer;
-            line-height: 1;
-        }
-
-        .emoji-btn:hover {
-            background: #e5e7eb;
         }
 
         .emoji-btn.active {
             background: #2563eb;
-            color: #ffffff;
+            color: white;
         }
 
-        .remove-reaction-btn {
-            border: none;
-            background: none;
-            padding: 0;
-            cursor: pointer;
-            font-size: 0.75rem;
-            color: #6b7280;
-            text-decoration: underline;
-        }
-
-        .remove-reaction-btn:hover {
-            color: #111827;
-        }
-
-        .btn-primary {
-            border: none;
+        /* NEW pill-style remove button to match your-reaction-pill */
+        .remove-reaction-pill {
+            padding: 4px 10px;
             border-radius: 999px;
-            padding: 8px 14px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            background: #2563eb;
-            color: #ffffff;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: none;
             cursor: pointer;
+            font-size: 0.8rem;
         }
 
-        .btn-primary:hover {
-            filter: brightness(0.95);
+        .remove-reaction-pill:hover {
+            background: #bae6fd;
+        }
+
+        footer {
+            text-align: center;
+            padding: 12px 0;
+            color: #9ca3af;
+            font-size: 0.8rem;
         }
     </style>
 </head>
-<body>
 
+<body class="page">
+
+<!-- NAVBAR -->
 <div class="navbar">
     <div class="navbar-left">
         <div>
@@ -292,92 +241,139 @@
 
     <h2>Latest Good News</h2>
 
-    <% if (error_message && error_message.length > 0) { %>
+    <!-- SEARCH BAR -->
+    <form class="search-bar" method="GET" action="/feed">
+        <select name="type" class="search-select" id="searchType" onchange="updateSearchUI()">
+            <option value="content" <%= type==='content'?'selected':'' %>>Post Content</option>
+            <option value="user" <%= type==='user'?'selected':'' %>>User</option>
+            <option value="reaction" <%= type==='reaction'?'selected':'' %>>Reaction</option>
+        </select>
+
+        <!-- TEXT INPUT (hidden if reaction search) -->
+        <input 
+            type="text"
+            name="q"
+            id="searchInput"
+            class="search-input"
+            placeholder="Enter search..."
+            value="<%= q || '' %>"
+            style="<%= type==='reaction' ? 'display:none;' : '' %>"
+        >
+
+        <!-- REACTION DROPDOWN -->
+        <select 
+            name="reaction"
+            id="reactionSelect"
+            class="reaction-select"
+            style="<%= type==='reaction' ? 'display:block;' : 'display:none;' %>"
+        >
+            <option value="">Choose reaction...</option>
+            <option value="1" <%= reaction==1?'selected':'' %>>👍 Like</option>
+            <option value="2" <%= reaction==2?'selected':'' %>>❤️ Love</option>
+            <option value="3" <%= reaction==3?'selected':'' %>>😂 Laugh</option>
+            <option value="4" <%= reaction==4?'selected':'' %>>🎉 Celebrate</option>
+            <option value="5" <%= reaction==5?'selected':'' %>>😮 Wow</option>
+            <option value="6" <%= reaction==6?'selected':'' %>>🙏 Support</option>
+        </select>
+
+        <button class="btn-search">Search</button>
+
+        <a href="/feed" class="btn-clear">Clear</a>
+    </form>
+
+    <script>
+        function updateSearchUI() {
+            const t = document.getElementById("searchType").value;
+            document.getElementById("searchInput").style.display =
+                (t === "reaction") ? "none" : "block";
+            document.getElementById("reactionSelect").style.display =
+                (t === "reaction") ? "block" : "none";
+        }
+    </script>
+
+    <% if (error_message) { %>
         <div class="error"><%= error_message %></div>
     <% } %>
 
     <% if (submissions.length === 0) { %>
-        <p class="small">No posts yet. Be the first to share something good!</p>
+        <p class="small" style="text-align:center; margin-top:40px;">No posts found.</p>
     <% } %>
 
-    <% submissions.forEach(function(post) { 
-        var breakdown = reactionBreakdown[post.subid] || {};
+    <% submissions.forEach(function(post) {
+        const breakdown = reactionBreakdown[post.subid] || {};
     %>
-        <div class="post">
-            <div class="post-header">
-                <div>
-                    <div class="post-author">
-                        <% if (post.userfirstname) { %>
-                            <%= post.userfirstname %> <%= post.userlastname %>
-                        <% } else { %>
-                            Deleted User
-                        <% } %>
-                    </div>
-                    <div class="meta">
-                        <%= new Date(post.subdate).toLocaleString() %>
-                    </div>
+
+    <div class="post">
+        <div class="post-header">
+            <div>
+                <div class="post-author">
+                    <% if (post.userfirstname) { %>
+                        <%= post.userfirstname %> <%= post.userlastname %>
+                    <% } else { %>Deleted User<% } %>
                 </div>
-            </div>
-
-            <div class="post-body">
-                <%= post.subtext %>
-            </div>
-
-            <div class="post-footer">
-                <div class="reaction-block">
-                    <div class="reaction-summary">
-                        <span><strong>Total reactions:</strong> <%= reactionCounts[post.subid] || 0 %></span>
-
-                        <span class="reaction-totals-line">
-                            👍 <%= breakdown[1] || 0 %> ·
-                            ❤️ <%= breakdown[2] || 0 %> ·
-                            😂 <%= breakdown[3] || 0 %> ·
-                            🎉 <%= breakdown[4] || 0 %> ·
-                            😮 <%= breakdown[5] || 0 %> ·
-                            🙏 <%= breakdown[6] || 0 %>
-                        </span>
-
-                        <% if (myReactions[post.subid]) { %>
-                            <span class="your-reaction-pill">
-                                Your reaction:
-                                <% if (myReactions[post.subid] === 1) { %>👍<% } %>
-                                <% if (myReactions[post.subid] === 2) { %>❤️<% } %>
-                                <% if (myReactions[post.subid] === 3) { %>😂<% } %>
-                                <% if (myReactions[post.subid] === 4) { %>🎉<% } %>
-                                <% if (myReactions[post.subid] === 5) { %>😮<% } %>
-                                <% if (myReactions[post.subid] === 6) { %>🙏<% } %>
-                            </span>
-                        <% } %>
-                    </div>
-
-                    <% if (currentUser) { %>
-                        <form method="POST" action="/react" class="reaction-form-row">
-                            <input type="hidden" name="subid" value="<%= post.subid %>">
-
-                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 1 ? 'active' : '' %>" name="reactionid" value="1">👍</button>
-                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 2 ? 'active' : '' %>" name="reactionid" value="2">❤️</button>
-                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 3 ? 'active' : '' %>" name="reactionid" value="3">😂</button>
-                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 4 ? 'active' : '' %>" name="reactionid" value="4">🎉</button>
-                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 5 ? 'active' : '' %>" name="reactionid" value="5">😮</button>
-                            <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 6 ? 'active' : '' %>" name="reactionid" value="6">🙏</button>
-                        </form>
-
-                        <% if (myReactions[post.subid]) { %>
-                            <form method="POST" action="/unreact">
-                                <input type="hidden" name="subid" value="<%= post.subid %>">
-                                <button type="submit" class="remove-reaction-btn">Remove reaction</button>
-                            </form>
-                        <% } %>
-                    <% } else { %>
-                        <div class="small">Log in to react.</div>
-                    <% } %>
-                </div>
-
-                <div>
-                    <a class="link" href="/post/<%= post.subid %>">Open post →</a>
-                </div>
+                <div class="meta"><%= new Date(post.subdate).toLocaleString() %></div>
             </div>
         </div>
+
+        <div class="post-body"><%= post.subtext %></div>
+
+        <div class="post-footer">
+
+            <div class="reaction-summary">
+                <strong>Total reactions:</strong> <%= reactionCounts[post.subid] || 0 %><br>
+
+                <span class="reaction-totals-line">
+                    👍 <%= breakdown[1] || 0 %> ·
+                    ❤️ <%= breakdown[2] || 0 %> ·
+                    😂 <%= breakdown[3] || 0 %> ·
+                    🎉 <%= breakdown[4] || 0 %> ·
+                    😮 <%= breakdown[5] || 0 %> ·
+                    🙏 <%= breakdown[6] || 0 %>
+                </span>
+
+                <% if (myReactions[post.subid]) { %>
+                    <div class="your-reaction-pill">
+                        Your reaction:
+                        <% if (myReactions[post.subid] === 1) { %>👍<% } %>
+                        <% if (myReactions[post.subid] === 2) { %>❤️<% } %>
+                        <% if (myReactions[post.subid] === 3) { %>😂<% } %>
+                        <% if (myReactions[post.subid] === 4) { %>🎉<% } %>
+                        <% if (myReactions[post.subid] === 5) { %>😮<% } %>
+                        <% if (myReactions[post.subid] === 6) { %>🙏<% } %>
+                    </div>
+                <% } %>
+            </div>
+
+            <% if (currentUser) { %>
+            <!-- FLEX ROW: emojis + remove button, same line -->
+            <div style="width: 100%; margin-top: 6px; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                <form method="POST" action="/react" class="reaction-form-row" style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                    <input type="hidden" name="subid" value="<%= post.subid %>">
+
+                    <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 1 ? 'active' : '' %>" name="reactionid" value="1">👍</button>
+                    <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 2 ? 'active' : '' %>" name="reactionid" value="2">❤️</button>
+                    <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 3 ? 'active' : '' %>" name="reactionid" value="3">😂</button>
+                    <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 4 ? 'active' : '' %>" name="reactionid" value="4">🎉</button>
+                    <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 5 ? 'active' : '' %>" name="reactionid" value="5">😮</button>
+                    <button type="submit" class="emoji-btn <%= myReactions[post.subid] === 6 ? 'active' : '' %>" name="reactionid" value="6">🙏</button>
+                </form>
+
+                <% if (myReactions[post.subid]) { %>
+                    <form method="POST" action="/unreact">
+                        <input type="hidden" name="subid" value="<%= post.subid %>">
+                        <button type="submit" class="remove-reaction-pill">Remove reaction</button>
+                    </form>
+                <% } %>
+            </div>
+            <% } %>
+
+            <div>
+                <a class="link" style="color:#2563eb;" href="/post/<%= post.subid %>">Open post →</a>
+            </div>
+
+        </div>
+    </div>
+
     <% }) %>
 
 </div>

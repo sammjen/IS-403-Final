@@ -8,7 +8,8 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fb; color: #111827; }
-        a { color: inherit; }
+        a { color: inherit;     text-decoration: none !important;
+}
         .navbar { background: #ffffff; border-bottom: 1px solid #dde1ea; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
         .navbar-left, .navbar-right { display: flex; align-items: center; gap: 12px; }
         .brand { font-weight: 700; font-size: 1.1rem; color: #111827; }
@@ -28,9 +29,10 @@
         .link:hover { text-decoration: underline; }
         footer { text-align: center; padding: 12px 0 16px; color: #9ca3af; font-size: 0.8rem; }
         .post { background: #ffffff; border-radius: 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08); padding: 14px 16px 12px; margin-bottom: 14px; border: 1px solid #e5e7eb; }
+
         .post-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
         .post-author { font-size: 0.9rem; font-weight: 600; color: #111827; }
-        .post-body { margin: 8px 0 10px; font-size: 0.95rem; line-height: 1.4; white-space: pre-wrap; }
+        .post-body { margin: 8px 0 10px; font-size: 0.95rem; line-height: 1.4; white-space: pre-line; }
         .post-footer { margin-top: 4px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
         .reaction-block { display: flex; flex-direction: column; gap: 6px; }
         .reaction-summary { font-size: 0.8rem; color: #4b5563; display: flex; flex-direction: column; gap: 2px; }
@@ -176,15 +178,31 @@
 
         <% replies.forEach(function(r) { %>
             <div class="reply-block">
-                <strong>
-                    <%= r.userfirstname
-                        ? (r.userfirstname + (r.userlastname ? (' ' + r.userlastname) : ''))
-                        : 'Deleted User' %>
-                </strong>
-                <span class="meta"> — <%= new Date(r.replydate).toLocaleString() %></span>
+
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>
+                            <%= r.userfirstname
+                                ? (r.userfirstname + (r.userlastname ? (' ' + r.userlastname) : ''))
+                                : 'Deleted User' %>
+                        </strong>
+                        <span class="meta"> — <%= new Date(r.replydate).toLocaleString() %></span>
+                    </div>
+
+                    <% if (currentUser && (currentUser.userid === r.authorid || currentUser.manager)) { %>
+                        <form action="/deleteReply/<%= r.replyid %>" method="post">
+                            <button class="btn-danger" style="padding:4px 8px; font-size:0.7rem;">
+                                Delete
+                            </button>
+                        </form>
+                    <% } %>
+                </div>
+
                 <div style="margin-top:6px;"><%= r.replytext %></div>
+
             </div>
         <% }); %>
+
 
         <% if (currentUser) { %>
             
