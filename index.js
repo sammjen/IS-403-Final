@@ -1,4 +1,4 @@
-// william gifford
+// william gifford, samm jenson, waylan abbott, luke hooper
 // Good News Network - Full App
 // Node + Express + EJS + PostgreSQL (Knex)
 
