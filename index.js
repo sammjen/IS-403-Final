@@ -12,14 +12,17 @@ require('dotenv').config();
 const express = require("express");
 const session = require("express-session");
 const path = require("path");
+const Sentiment = require("sentiment"); // Add this line
+const sentiment = new Sentiment();
 const knex = require("knex")({
     client: "pg",
     connection: {
-        host: process.env.DB_HOST || "localhost",
-        user: process.env.DB_USER || "postgres",
-        password: process.env.DB_PASSWORD || "admin",
-        database: process.env.DB_NAME || "is403",
-        port: process.env.DB_PORT || 5432
+        host: process.env.RDS_HOSTNAME || "localhost",
+        user: process.env.RDS_USERNAME || "postgres",
+        password: process.env.RDS_PASSWORD || "admin",
+        database: process.env.RDS_DB_NAME || "goodnewsnetwork",
+        port: process.env.RDS_PORT || 5432,
+        ssl: process.env.DB_SSL ? {rejectUnauthorized: false} : false
     }
 });
 
@@ -293,28 +296,48 @@ app.get("/newpost", (req, res) => {
 });
 
 // NEW POST (POST)
+// NEW POST (POST)
 app.post("/newpost", (req, res) => {
     if (!req.session.isLoggedIn) return res.redirect("/login");
 
     const { subtext } = req.body;
     if (!subtext || subtext.trim().length === 0) {
-        return res.render("newPost", { error_message: "Post content cannot be empty.", currentUser: req.session.user });
+        return res.render("newPost", { 
+            error_message: "Post content cannot be empty.", 
+            currentUser: req.session.user 
+        });
     }
 
-    knex("submissions")
-        .insert({
-            userid: req.session.user.userid,
-            subtext: subtext,
-            subnegativestatus: false, // placeholder; AI filter not implemented
-            subdate: knex.fn.now()
-        })
-        .then(() => {
-            res.redirect("/feed");
-        })
-        .catch(err => {
-            console.error("Add post error:", err.message);
-            res.render("newPost", { error_message: "Error adding post: " + err.message, currentUser: req.session.user });
+    // --- START FILTER LOGIC ---
+    const analysis = sentiment.analyze(subtext);
+    
+    // If the score is negative (e.g., less than 0), block the post
+    if (analysis.score < 0) {
+        return res.render("newPost", { 
+            // Send them back to the form with an error
+            error_message: "Oops! We only allow Good News here. Your post was detected as negative.", 
+            currentUser: req.session.user 
         });
+    }
+    // --- END FILTER LOGIC ---
+
+    knex("submissions")
+      .insert({
+          userid: req.session.user.userid,
+          subtext: subtext,
+          subnegativestatus: false, // It passed the filter, so this is false
+          subdate: knex.fn.now()
+      })
+      .then(() => {
+          res.redirect("/feed");
+      })
+      .catch(err => {
+          console.error("Add post error:", err.message);
+          res.render("newPost", { 
+              error_message: "Error adding post: " + err.message, 
+              currentUser: req.session.user 
+          });
+      });
 });
 
 // VIEW SINGLE POST (public)
