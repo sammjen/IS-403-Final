@@ -12,6 +12,8 @@ require('dotenv').config();
 const express = require("express");
 const session = require("express-session");
 const path = require("path");
+const Sentiment = require("sentiment"); // Add this line
+const sentiment = new Sentiment();
 const knex = require("knex")({
     client: "pg",
     connection: {
@@ -265,19 +267,36 @@ app.get("/newpost", (req, res) => {
 });
 
 // NEW POST (POST)
+// NEW POST (POST)
 app.post("/newpost", (req, res) => {
     if (!req.session.isLoggedIn) return res.redirect("/login");
 
     const { subtext } = req.body;
     if (!subtext || subtext.trim().length === 0) {
-        return res.render("newPost", { error_message: "Post content cannot be empty.", currentUser: req.session.user });
+        return res.render("newPost", { 
+            error_message: "Post content cannot be empty.", 
+            currentUser: req.session.user 
+        });
     }
+
+    // --- START FILTER LOGIC ---
+    const analysis = sentiment.analyze(subtext);
+    
+    // If the score is negative (e.g., less than 0), block the post
+    if (analysis.score < 0) {
+        return res.render("newPost", { 
+            // Send them back to the form with an error
+            error_message: "Oops! We only allow Good News here. Your post was detected as negative.", 
+            currentUser: req.session.user 
+        });
+    }
+    // --- END FILTER LOGIC ---
 
     knex("submissions")
       .insert({
           userid: req.session.user.userid,
           subtext: subtext,
-          subnegativestatus: false, // placeholder; AI filter not implemented
+          subnegativestatus: false, // It passed the filter, so this is false
           subdate: knex.fn.now()
       })
       .then(() => {
@@ -285,7 +304,10 @@ app.post("/newpost", (req, res) => {
       })
       .catch(err => {
           console.error("Add post error:", err.message);
-          res.render("newPost", { error_message: "Error adding post: " + err.message, currentUser: req.session.user });
+          res.render("newPost", { 
+              error_message: "Error adding post: " + err.message, 
+              currentUser: req.session.user 
+          });
       });
 });
 
