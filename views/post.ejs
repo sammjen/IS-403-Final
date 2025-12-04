@@ -8,8 +8,7 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 0; padding: 0; background: #f5f7fb; color: #111827; }
-        a { color: inherit;     text-decoration: none !important;
-}
+        a { color: inherit; text-decoration: none !important; }
         .navbar { background: #ffffff; border-bottom: 1px solid #dde1ea; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; }
         .navbar-left, .navbar-right { display: flex; align-items: center; gap: 12px; }
         .brand { font-weight: 700; font-size: 1.1rem; color: #111827; }
@@ -42,8 +41,22 @@
         .emoji-btn { border: none; background: #f3f4f6; border-radius: 999px; padding: 4px 8px; font-size: 0.9rem; cursor: pointer; line-height: 1; }
         .emoji-btn:hover { background: #e5e7eb; }
         .emoji-btn.active { background: #2563eb; color: #ffffff; }
-        .remove-reaction-btn { border: none; background: none; padding: 0; cursor: pointer; font-size: 0.75rem; color: #6b7280; text-decoration: underline; }
-        .remove-reaction-btn:hover { color: #111827; }
+
+        /* NEW PILL STYLING FOR REMOVE */
+        .remove-reaction-pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: #e0f2fe;
+            color: #0369a1;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .remove-reaction-pill:hover {
+            background: #d0e8fa;
+        }
+
         .btn-primary { border: none; border-radius: 999px; padding: 8px 14px; font-size: 0.9rem; font-weight: 600; background: #2563eb; color: #ffffff; cursor: pointer; }
         .btn-primary:hover { filter: brightness(0.95); }
         .btn-danger { border: none; border-radius: 999px; padding: 6px 12px; font-size: 0.85rem; font-weight: 500; background: #b91c1c; color: #ffffff; cursor: pointer; }
@@ -140,23 +153,28 @@
                     </div>
 
                     <% if (currentUser) { %>
-                        <form action="/react" method="post" class="reaction-form-row">
-                            <input type="hidden" name="subid" value="<%= post.subid %>">
 
-                            <button class="emoji-btn <%= myReaction === 1 ? 'active' : '' %>" name="reactionid" value="1">👍</button>
-                            <button class="emoji-btn <%= myReaction === 2 ? 'active' : '' %>" name="reactionid" value="2">❤️</button>
-                            <button class="emoji-btn <%= myReaction === 3 ? 'active' : '' %>" name="reactionid" value="3">😂</button>
-                            <button class="emoji-btn <%= myReaction === 4 ? 'active' : '' %>" name="reactionid" value="4">🎉</button>
-                            <button class="emoji-btn <%= myReaction === 5 ? 'active' : '' %>" name="reactionid" value="5">😮</button>
-                            <button class="emoji-btn <%= myReaction === 6 ? 'active' : '' %>" name="reactionid" value="6">🙏</button>
-                        </form>
-
-                        <% if (myReaction) { %>
-                            <form action="/unreact" method="post" style="margin-top:4px;">
+                        <!-- SAME FORMAT as original, but pill-style remove button + same line -->
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                            <form action="/react" method="post" class="reaction-form-row">
                                 <input type="hidden" name="subid" value="<%= post.subid %>">
-                                <button type="submit" class="remove-reaction-btn">Remove reaction</button>
+
+                                <button class="emoji-btn <%= myReaction === 1 ? 'active' : '' %>" name="reactionid" value="1">👍</button>
+                                <button class="emoji-btn <%= myReaction === 2 ? 'active' : '' %>" name="reactionid" value="2">❤️</button>
+                                <button class="emoji-btn <%= myReaction === 3 ? 'active' : '' %>" name="reactionid" value="3">😂</button>
+                                <button class="emoji-btn <%= myReaction === 4 ? 'active' : '' %>" name="reactionid" value="4">🎉</button>
+                                <button class="emoji-btn <%= myReaction === 5 ? 'active' : '' %>" name="reactionid" value="5">😮</button>
+                                <button class="emoji-btn <%= myReaction === 6 ? 'active' : '' %>" name="reactionid" value="6">🙏</button>
                             </form>
-                        <% } %>
+
+                            <% if (myReaction) { %>
+                                <form action="/unreact" method="post">
+                                    <input type="hidden" name="subid" value="<%= post.subid %>">
+                                    <button type="submit" class="remove-reaction-pill">Remove reaction</button>
+                                </form>
+                            <% } %>
+                        </div>
+
                     <% } else { %>
                         <div class="small">Log in to react.</div>
                     <% } %>
@@ -202,7 +220,6 @@
 
             </div>
         <% }); %>
-
 
         <% if (currentUser) { %>
             

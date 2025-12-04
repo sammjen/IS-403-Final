@@ -1,4 +1,4 @@
-// william gifford, samm jenson, waylan abbott, luke hooper
+// william gifford sam jenson luke hooper waylan abbott
 // Good News Network - Full App
 // Node + Express + EJS + PostgreSQL (Knex)
 
@@ -83,9 +83,6 @@ app.get("/feed", async (req, res) => {
         q = q ? q.trim() : "";
         reaction = reaction ? parseInt(reaction) : null;
 
-        // ---------------------------
-        // BASE QUERY
-        // ---------------------------
         let feedQuery = knex
             .select(
                 "submissions.subid",
@@ -99,9 +96,6 @@ app.get("/feed", async (req, res) => {
             .from("submissions")
             .leftJoin("users", "submissions.userid", "users.userid");
 
-        // ---------------------------
-        // SEARCH FILTERS
-        // ---------------------------
         if (type === "content" && q) {
             feedQuery.whereILike("submissions.subtext", `%${q}%`);
         }
@@ -125,9 +119,6 @@ app.get("/feed", async (req, res) => {
 
         const subs = await feedQuery;
 
-        // ---------------------------
-        // Reaction Breakdown
-        // ---------------------------
         const subIds = subs.map(s => s.subid);
 
         let breakdownRows = [];
@@ -153,7 +144,6 @@ app.get("/feed", async (req, res) => {
             totals[sid] = (totals[sid] || 0) + cnt;
         });
 
-        // Current user's reactions
         let myReactionsMap = {};
         if (req.session.isLoggedIn && subIds.length > 0) {
             const rows = await knex("subreactions")
@@ -164,7 +154,6 @@ app.get("/feed", async (req, res) => {
             rows.forEach(r => (myReactionsMap[r.subid] = r.reactionid));
         }
 
-        // Render feed
         res.render("feed", {
             submissions: subs,
             reactionCounts: totals,
@@ -372,6 +361,7 @@ app.get("/post/:id", async (req, res) => {
                 "replyid",
                 "replytext",
                 "replydate",
+                "replies.userid as authorid",
                 "users.userfirstname",
                 "users.userlastname"
             )
@@ -413,9 +403,9 @@ app.get("/post/:id", async (req, res) => {
 });
 
 // ---------------------------
-// REPLY
+// REPLY (with restored sentiment filter)
 // ---------------------------
-app.post("/reply/:id", (req, res) => {
+app.post("/reply/:id", async (req, res) => {
     if (!req.session.isLoggedIn) return res.redirect("/login");
 
     const subId = req.params.id;
@@ -423,6 +413,78 @@ app.post("/reply/:id", (req, res) => {
 
     if (!replytext || !replytext.trim()) return res.redirect(`/post/${subId}`);
 
+    // *** Sentiment Filter ***
+    const analysis = sentiment.analyze(replytext);
+    if (analysis.score < 0) {
+        try {
+            // Reload post data to re-render the page with the error
+            const post = await knex
+                .select(
+                    "submissions.subid",
+                    "submissions.subtext",
+                    "submissions.subdate",
+                    "submissions.userid as authorid",
+                    "users.userfirstname",
+                    "users.userlastname"
+                )
+                .from("submissions")
+                .leftJoin("users", "submissions.userid", "users.userid")
+                .where("submissions.subid", subId)
+                .first();
+
+            const breakdownRows = await knex("subreactions")
+                .select("reactionid")
+                .count("* as cnt")
+                .where("subid", subId)
+                .groupBy("reactionid");
+
+            const breakdown = {};
+            let total = 0;
+
+            breakdownRows.forEach(r => {
+                breakdown[r.reactionid] = parseInt(r.cnt);
+                total += parseInt(r.cnt);
+            });
+
+            const replies = await knex("replies")
+                .select(
+                    "replyid",
+                    "replytext",
+                    "replydate",
+                    "replies.userid as authorid",
+                    "users.userfirstname",
+                    "users.userlastname"
+                )
+                .leftJoin("users", "replies.userid", "users.userid")
+                .where("subid", subId)
+                .orderBy("replydate", "asc");
+
+            const myReactionRow = req.session.isLoggedIn
+                ? await knex("subreactions")
+                      .select("reactionid")
+                      .where({ subid: subId, userid: req.session.user.userid })
+                      .first()
+                : null;
+
+            const myReaction = myReactionRow ? myReactionRow.reactionid : null;
+
+            return res.render("post", {
+                post,
+                replies,
+                reactionCounts: total,
+                reactionBreakdown: { [subId]: breakdown },
+                myReaction,
+                currentUser: req.session.user,
+                error_message: "Oops! Your reply is too negative! Please keep it positive (:"
+            });
+
+        } catch (err) {
+            console.error("Sentiment reply render error:", err);
+            return res.redirect(`/post/${subId}`);
+        }
+    }
+
+    // Insert valid reply
     knex("replies")
         .insert({
             userid: req.session.user.userid,
@@ -509,7 +571,43 @@ app.post("/deletePost/:id", (req, res) => {
 });
 
 // ---------------------------
+// DELETE REPLY
+// ---------------------------
+app.post("/deleteReply/:id", async (req, res) => {
+    if (!req.session.isLoggedIn) return res.redirect("/login");
+
+    const replyId = req.params.id;
+
+    try {
+        const reply = await knex("replies")
+            .select("userid", "subid")
+            .where("replyid", replyId)
+            .first();
+
+        if (!reply) return res.redirect("/feed");
+
+        const isOwner = reply.userid === req.session.user.userid;
+        const isManager = req.session.user.manager;
+
+        if (!isOwner && !isManager) {
+            return res.status(403).send("Not authorized");
+        }
+
+        await knex("replies")
+            .where("replyid", replyId)
+            .del();
+
+        res.redirect(`/post/${reply.subid}`);
+
+    } catch (err) {
+        console.error("Delete reply error:", err);
+        res.redirect("/feed");
+    }
+});
+
+// ---------------------------
 // START SERVER
 // ---------------------------
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Good News Server running on port ${port}`));
+
